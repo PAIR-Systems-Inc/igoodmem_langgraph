@@ -292,9 +292,7 @@ class GoodMemClient:
             httpx.HTTPStatusError: If the API returns an error status.
         """
         space_keys = [
-            {"spaceId": sid.strip()}
-            for sid in space_ids.split(",")
-            if sid.strip()
+            {"spaceId": sid.strip()} for sid in space_ids.split(",") if sid.strip()
         ]
         if not space_keys:
             msg = "At least one valid Space ID is required."
@@ -339,22 +337,22 @@ class GoodMemClient:
                     item = json.loads(json_str)
 
                     if item.get("resultSetBoundary"):
-                        result_set_id = item["resultSetBoundary"].get(
-                            "resultSetId", ""
-                        )
+                        result_set_id = item["resultSetBoundary"].get("resultSetId", "")
                     elif item.get("memoryDefinition"):
                         memories.append(item["memoryDefinition"])
                     elif item.get("retrievedItem"):
                         ri = item["retrievedItem"]
                         chunk_data = ri.get("chunk", {})
                         chunk = chunk_data.get("chunk", {})
-                        results.append({
-                            "chunkId": chunk.get("chunkId"),
-                            "chunkText": chunk.get("chunkText"),
-                            "memoryId": chunk.get("memoryId"),
-                            "relevanceScore": chunk_data.get("relevanceScore"),
-                            "memoryIndex": chunk_data.get("memoryIndex"),
-                        })
+                        results.append(
+                            {
+                                "chunkId": chunk.get("chunkId"),
+                                "chunkText": chunk.get("chunkText"),
+                                "memoryId": chunk.get("memoryId"),
+                                "relevanceScore": chunk_data.get("relevanceScore"),
+                                "memoryIndex": chunk_data.get("memoryIndex"),
+                            }
+                        )
                 except (ValueError, KeyError):
                     continue
 
@@ -417,9 +415,7 @@ class GoodMemClient:
                         headers=self._headers(),
                     )
                     content_response.raise_for_status()
-                    content_type = content_response.headers.get(
-                        "content-type", ""
-                    )
+                    content_type = content_response.headers.get("content-type", "")
                     if "application/json" in content_type:
                         result["content"] = content_response.json()
                     else:

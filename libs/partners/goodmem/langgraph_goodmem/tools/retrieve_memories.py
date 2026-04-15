@@ -14,8 +14,7 @@ class RetrieveMemoriesInput(BaseModel):
 
     query: str = Field(
         description=(
-            "A natural language query used to find semantically similar "
-            "memory chunks."
+            "A natural language query used to find semantically similar memory chunks."
         ),
     )
     space_ids: str = Field(
@@ -73,11 +72,13 @@ class GoodMemRetrieveMemories(BaseTool):
     Invocation:
         .. code-block:: python
 
-            result = tool.invoke({
-                "query": "machine learning best practices",
-                "space_ids": "space-uuid-1,space-uuid-2",
-                "max_results": 10,
-            })
+            result = tool.invoke(
+                {
+                    "query": "machine learning best practices",
+                    "space_ids": "space-uuid-1,space-uuid-2",
+                    "max_results": 10,
+                }
+            )
     """
 
     name: str = "goodmem_retrieve_memories"

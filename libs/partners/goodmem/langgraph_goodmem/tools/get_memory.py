@@ -52,10 +52,12 @@ class GoodMemGetMemory(BaseTool):
     Invocation:
         .. code-block:: python
 
-            result = tool.invoke({
-                "memory_id": "memory-uuid",
-                "include_content": True,
-            })
+            result = tool.invoke(
+                {
+                    "memory_id": "memory-uuid",
+                    "include_content": True,
+                }
+            )
     """
 
     name: str = "goodmem_get_memory"

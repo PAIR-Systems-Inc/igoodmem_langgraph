@@ -1,9 +1,8 @@
 """Unit tests for GoodMem LangGraph tool wrappers."""
 
 import json
+from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from langgraph_goodmem import (
     GoodMemCreateMemory,
@@ -15,7 +14,7 @@ from langgraph_goodmem import (
     GoodMemRetrieveMemories,
 )
 
-_COMMON_KWARGS = {
+_COMMON_KWARGS: dict[str, Any] = {
     "goodmem_base_url": "http://localhost:8080",
     "goodmem_api_key": "test-key",
     "goodmem_verify_ssl": False,
@@ -123,10 +122,12 @@ class TestRetrieveMemoriesTool:
             "query": "hello",
         }
         tool = GoodMemRetrieveMemories(**_COMMON_KWARGS)
-        raw = tool.invoke({
-            "query": "hello",
-            "space_ids": "s1",
-        })
+        raw = tool.invoke(
+            {
+                "query": "hello",
+                "space_ids": "s1",
+            }
+        )
         result = json.loads(raw)
         assert result["success"] is True
         assert result["totalResults"] == 1

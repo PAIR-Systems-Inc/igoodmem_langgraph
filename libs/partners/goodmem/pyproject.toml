@@ -6,7 +6,8 @@ build-backend = "hatchling.build"
 name = "langgraph-goodmem"
 version = "0.1.0"
 description = "An integration package connecting GoodMem and LangGraph"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -48,6 +49,9 @@ typing = [
     "langchain-core",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["langgraph_goodmem"]
+
 [tool.ruff.format]
 docstring-code-format = true
 
@@ -64,6 +68,10 @@ ban-relative-imports = "all"
 
 [tool.mypy]
 disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["pytest.*"]
+ignore_missing_imports = true
 
 [tool.coverage.run]
 omit = ["tests/*"]

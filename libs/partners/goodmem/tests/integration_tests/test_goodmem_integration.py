@@ -17,6 +17,7 @@ Run with:
 import json
 import os
 import time
+from typing import Any
 
 import pytest
 
@@ -36,7 +37,7 @@ TEST_PDF = os.environ.get("GOODMEM_TEST_PDF", "")
 EMBEDDER_ID = os.environ.get("GOODMEM_EMBEDDER_ID", "")
 VERIFY_SSL = os.environ.get("GOODMEM_VERIFY_SSL", "false").lower() == "true"
 
-_COMMON_KWARGS: dict[str, object] = {
+_COMMON_KWARGS: dict[str, Any] = {
     "goodmem_base_url": BASE_URL,
     "goodmem_api_key": API_KEY,
     "goodmem_verify_ssl": VERIFY_SSL,
@@ -122,13 +123,15 @@ class TestEndToEndFlow:
     def test_text_memory_lifecycle(self, space_id: str) -> None:
         # Create text memory
         create_tool = GoodMemCreateMemory(**_COMMON_KWARGS)
-        raw = create_tool.invoke({
-            "space_id": space_id,
-            "text_content": (
-                "LangGraph is a framework for building stateful, "
-                "multi-actor applications with LLMs."
-            ),
-        })
+        raw = create_tool.invoke(
+            {
+                "space_id": space_id,
+                "text_content": (
+                    "LangGraph is a framework for building stateful, "
+                    "multi-actor applications with LLMs."
+                ),
+            }
+        )
         result = json.loads(raw)
         assert result["success"] is True
         memory_id = result["memoryId"]
@@ -143,12 +146,14 @@ class TestEndToEndFlow:
 
         # Retrieve memories (wait for indexing so embeddings are ready)
         retrieve_tool = GoodMemRetrieveMemories(**_COMMON_KWARGS)
-        raw = retrieve_tool.invoke({
-            "query": "LangGraph framework",
-            "space_ids": space_id,
-            "max_results": 5,
-            "wait_for_indexing": True,
-        })
+        raw = retrieve_tool.invoke(
+            {
+                "query": "LangGraph framework",
+                "space_ids": space_id,
+                "max_results": 5,
+                "wait_for_indexing": True,
+            }
+        )
         result = json.loads(raw)
         assert result["success"] is True
         assert result["totalResults"] > 0
@@ -166,10 +171,12 @@ class TestEndToEndFlow:
     @pytest.mark.skipif(not TEST_PDF, reason="GOODMEM_TEST_PDF not set")
     def test_pdf_memory_creation(self, space_id: str) -> None:
         create_tool = GoodMemCreateMemory(**_COMMON_KWARGS)
-        raw = create_tool.invoke({
-            "space_id": space_id,
-            "file_path": TEST_PDF,
-        })
+        raw = create_tool.invoke(
+            {
+                "space_id": space_id,
+                "file_path": TEST_PDF,
+            }
+        )
         result = json.loads(raw)
         assert result["success"] is True
         assert result["memoryId"]

@@ -66,10 +66,12 @@ class GoodMemCreateSpace(BaseTool):
     Invocation:
         .. code-block:: python
 
-            result = tool.invoke({
-                "name": "my-space",
-                "embedder_id": "emb-xxx",
-            })
+            result = tool.invoke(
+                {
+                    "name": "my-space",
+                    "embedder_id": "emb-xxx",
+                }
+            )
     """
 
     name: str = "goodmem_create_space"

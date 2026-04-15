@@ -86,9 +86,10 @@ class TestCreateSpace:
         create_resp = _mock_response(
             json_data={"spaceId": "new-id", "name": "my-space"}
         )
-        with patch.object(
-            httpx.Client, "get", return_value=list_resp
-        ), patch.object(httpx.Client, "post", return_value=create_resp):
+        with (
+            patch.object(httpx.Client, "get", return_value=list_resp),
+            patch.object(httpx.Client, "post", return_value=create_resp),
+        ):
             result = client.create_space(name="my-space", embedder_id="emb-1")
         assert result["success"] is True
         assert result["spaceId"] == "new-id"
@@ -104,15 +105,12 @@ class TestCreateSpace:
 
     def test_create_space_none_chunking(self, client: GoodMemClient) -> None:
         list_resp = _mock_response(json_data=[])
-        create_resp = _mock_response(
-            json_data={"spaceId": "id", "name": "s"}
-        )
-        with patch.object(
-            httpx.Client, "get", return_value=list_resp
-        ), patch.object(httpx.Client, "post", return_value=create_resp) as mock_post:
-            client.create_space(
-                name="s", embedder_id="e", chunking_strategy="none"
-            )
+        create_resp = _mock_response(json_data={"spaceId": "id", "name": "s"})
+        with (
+            patch.object(httpx.Client, "get", return_value=list_resp),
+            patch.object(httpx.Client, "post", return_value=create_resp) as mock_post,
+        ):
+            client.create_space(name="s", embedder_id="e", chunking_strategy="none")
         call_json = mock_post.call_args.kwargs["json"]
         assert call_json["defaultChunkingConfig"] == {"none": {}}
 
@@ -127,15 +125,11 @@ class TestCreateMemory:
             }
         )
         with patch.object(httpx.Client, "post", return_value=mock_resp):
-            result = client.create_memory(
-                space_id="s1", text_content="hello world"
-            )
+            result = client.create_memory(space_id="s1", text_content="hello world")
         assert result["success"] is True
         assert result["memoryId"] == "m1"
 
-    def test_create_memory_empty_string_accepted(
-        self, client: GoodMemClient
-    ) -> None:
+    def test_create_memory_empty_string_accepted(self, client: GoodMemClient) -> None:
         mock_resp = _mock_response(
             json_data={
                 "memoryId": "m2",
@@ -147,9 +141,7 @@ class TestCreateMemory:
             result = client.create_memory(space_id="s1", text_content="")
         assert result["success"] is True
 
-    def test_create_memory_no_content_raises(
-        self, client: GoodMemClient
-    ) -> None:
+    def test_create_memory_no_content_raises(self, client: GoodMemClient) -> None:
         with pytest.raises(ValueError, match="No content provided"):
             client.create_memory(space_id="s1")
 
@@ -166,35 +158,23 @@ class TestCreateMemory:
             }
         )
         with patch.object(httpx.Client, "post", return_value=mock_resp):
-            result = client.create_memory(
-                space_id="s1", file_path=str(f)
-            )
+            result = client.create_memory(space_id="s1", file_path=str(f))
         assert result["success"] is True
 
 
 class TestGetMemory:
     def test_get_memory_with_content(self, client: GoodMemClient) -> None:
-        mem_resp = _mock_response(
-            json_data={"memoryId": "m1", "spaceId": "s1"}
-        )
+        mem_resp = _mock_response(json_data={"memoryId": "m1", "spaceId": "s1"})
         content_resp = _mock_response(json_data={"text": "hello"})
-        with patch.object(
-            httpx.Client, "get", side_effect=[mem_resp, content_resp]
-        ):
+        with patch.object(httpx.Client, "get", side_effect=[mem_resp, content_resp]):
             result = client.get_memory(memory_id="m1")
         assert result["success"] is True
         assert result["content"] == {"text": "hello"}
 
-    def test_get_memory_content_error_captured(
-        self, client: GoodMemClient
-    ) -> None:
-        mem_resp = _mock_response(
-            json_data={"memoryId": "m1", "spaceId": "s1"}
-        )
+    def test_get_memory_content_error_captured(self, client: GoodMemClient) -> None:
+        mem_resp = _mock_response(json_data={"memoryId": "m1", "spaceId": "s1"})
         err_resp = _mock_response(status_code=404)
-        with patch.object(
-            httpx.Client, "get", side_effect=[mem_resp, err_resp]
-        ):
+        with patch.object(httpx.Client, "get", side_effect=[mem_resp, err_resp]):
             result = client.get_memory(memory_id="m1")
         assert result["success"] is True
         assert "contentError" in result
@@ -210,18 +190,14 @@ class TestDeleteMemory:
 
 
 class TestListEmbedders:
-    def test_list_embedders_list_response(
-        self, client: GoodMemClient
-    ) -> None:
+    def test_list_embedders_list_response(self, client: GoodMemClient) -> None:
         embedders = [{"embedderId": "e1", "name": "test"}]
         mock_resp = _mock_response(json_data=embedders)
         with patch.object(httpx.Client, "get", return_value=mock_resp):
             result = client.list_embedders()
         assert result == embedders
 
-    def test_list_embedders_dict_response(
-        self, client: GoodMemClient
-    ) -> None:
+    def test_list_embedders_dict_response(self, client: GoodMemClient) -> None:
         body = {"embedders": [{"embedderId": "e1"}]}
         mock_resp = _mock_response(json_data=body)
         with patch.object(httpx.Client, "get", return_value=mock_resp):
@@ -230,29 +206,29 @@ class TestListEmbedders:
 
 
 class TestRetrieveMemories:
-    def test_retrieve_memories_parses_ndjson(
-        self, client: GoodMemClient
-    ) -> None:
-        ndjson = "\n".join([
-            json.dumps({
-                "retrievedItem": {
-                    "chunk": {
-                        "chunk": {
-                            "chunkId": "c1",
-                            "chunkText": "hello",
-                            "memoryId": "m1",
-                        },
-                        "relevanceScore": 0.95,
-                        "memoryIndex": 0,
+    def test_retrieve_memories_parses_ndjson(self, client: GoodMemClient) -> None:
+        ndjson = "\n".join(
+            [
+                json.dumps(
+                    {
+                        "retrievedItem": {
+                            "chunk": {
+                                "chunk": {
+                                    "chunkId": "c1",
+                                    "chunkText": "hello",
+                                    "memoryId": "m1",
+                                },
+                                "relevanceScore": 0.95,
+                                "memoryIndex": 0,
+                            }
+                        }
                     }
-                }
-            }),
-            json.dumps({
-                "resultSetBoundary": {"resultSetId": "rs1"}
-            }),
-        ])
+                ),
+                json.dumps({"resultSetBoundary": {"resultSetId": "rs1"}}),
+            ]
+        )
         mock_resp = _mock_response(text=ndjson)
-        mock_resp.json = MagicMock(side_effect=Exception("not json"))
+        mock_resp.json = MagicMock(side_effect=Exception("not json"))  # type: ignore[method-assign]
         with patch.object(httpx.Client, "post", return_value=mock_resp):
             result = client.retrieve_memories(
                 query="hello",
@@ -268,26 +244,24 @@ class TestRetrieveMemories:
         self, client: GoodMemClient
     ) -> None:
         with pytest.raises(ValueError, match="At least one valid Space ID"):
-            client.retrieve_memories(
-                query="q", space_ids="", wait_for_indexing=False
-            )
+            client.retrieve_memories(query="q", space_ids="", wait_for_indexing=False)
 
-    def test_retrieve_memories_handles_data_prefix(
-        self, client: GoodMemClient
-    ) -> None:
-        ndjson = "data:" + json.dumps({
-            "retrievedItem": {
-                "chunk": {
+    def test_retrieve_memories_handles_data_prefix(self, client: GoodMemClient) -> None:
+        ndjson = "data:" + json.dumps(
+            {
+                "retrievedItem": {
                     "chunk": {
-                        "chunkId": "c1",
-                        "chunkText": "world",
-                        "memoryId": "m1",
-                    },
-                    "relevanceScore": 0.8,
-                    "memoryIndex": 0,
+                        "chunk": {
+                            "chunkId": "c1",
+                            "chunkText": "world",
+                            "memoryId": "m1",
+                        },
+                        "relevanceScore": 0.8,
+                        "memoryIndex": 0,
+                    }
                 }
             }
-        })
+        )
         mock_resp = _mock_response(text=ndjson)
         with patch.object(httpx.Client, "post", return_value=mock_resp):
             result = client.retrieve_memories(

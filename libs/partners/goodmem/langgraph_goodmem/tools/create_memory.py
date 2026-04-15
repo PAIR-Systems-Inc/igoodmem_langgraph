@@ -64,18 +64,22 @@ class GoodMemCreateMemory(BaseTool):
     Invocation with text:
         .. code-block:: python
 
-            result = tool.invoke({
-                "space_id": "space-uuid",
-                "text_content": "Some important information.",
-            })
+            result = tool.invoke(
+                {
+                    "space_id": "space-uuid",
+                    "text_content": "Some important information.",
+                }
+            )
 
     Invocation with file:
         .. code-block:: python
 
-            result = tool.invoke({
-                "space_id": "space-uuid",
-                "file_path": "/path/to/document.pdf",
-            })
+            result = tool.invoke(
+                {
+                    "space_id": "space-uuid",
+                    "file_path": "/path/to/document.pdf",
+                }
+            )
     """
 
     name: str = "goodmem_create_memory"
