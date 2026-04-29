@@ -42,6 +42,40 @@ class RetrieveMemoriesInput(BaseModel):
             "undergoing chunking and embedding."
         ),
     )
+    reranker_id: str | None = Field(
+        default=None,
+        description=(
+            "UUID of a reranker model to refine the order of retrieved "
+            "chunks via direct query-chunk scoring."
+        ),
+    )
+    llm_id: str | None = Field(
+        default=None,
+        description=(
+            "UUID of an LLM that will produce a contextual summary "
+            "(`abstractReply`) over the retrieved chunks."
+        ),
+    )
+    relevance_threshold: float | None = Field(
+        default=None,
+        description=(
+            "Minimum relevance score (0-1) below which results are dropped. "
+            "Only applied when a post-processor is configured."
+        ),
+    )
+    llm_temperature: float | None = Field(
+        default=None,
+        description=(
+            "Creativity setting for LLM generation (0-2). Only used when "
+            "`llm_id` is also provided."
+        ),
+    )
+    chronological_resort: bool | None = Field(
+        default=None,
+        description=(
+            "Reorder final results by creation time after reranking and thresholding."
+        ),
+    )
 
 
 class GoodMemRetrieveMemories(BaseTool):
@@ -101,6 +135,11 @@ class GoodMemRetrieveMemories(BaseTool):
         max_results: int = 5,
         include_memory_definition: bool = True,
         wait_for_indexing: bool = True,
+        reranker_id: str | None = None,
+        llm_id: str | None = None,
+        relevance_threshold: float | None = None,
+        llm_temperature: float | None = None,
+        chronological_resort: bool | None = None,
         **kwargs: Any,
     ) -> str:
         """Retrieve semantically similar memories.
@@ -111,6 +150,11 @@ class GoodMemRetrieveMemories(BaseTool):
             max_results: Maximum results to return.
             include_memory_definition: Include full memory metadata.
             wait_for_indexing: Poll for indexing completion.
+            reranker_id: Optional reranker UUID for result refinement.
+            llm_id: Optional LLM UUID for `abstractReply` generation.
+            relevance_threshold: Minimum score (0-1) for inclusion.
+            llm_temperature: LLM creativity (0-2).
+            chronological_resort: Reorder final results by creation time.
             **kwargs: Additional keyword arguments (unused).
 
         Returns:
@@ -128,6 +172,11 @@ class GoodMemRetrieveMemories(BaseTool):
                 max_results=max_results,
                 include_memory_definition=include_memory_definition,
                 wait_for_indexing=wait_for_indexing,
+                reranker_id=reranker_id,
+                llm_id=llm_id,
+                relevance_threshold=relevance_threshold,
+                llm_temperature=llm_temperature,
+                chronological_resort=chronological_resort,
             )
         except Exception as e:
             result = {"success": False, "error": str(e)}

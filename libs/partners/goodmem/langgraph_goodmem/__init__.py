@@ -5,10 +5,14 @@ from langgraph_goodmem.tools import (
     GoodMemCreateMemory,
     GoodMemCreateSpace,
     GoodMemDeleteMemory,
+    GoodMemDeleteSpace,
     GoodMemGetMemory,
+    GoodMemGetSpace,
     GoodMemListEmbedders,
+    GoodMemListMemories,
     GoodMemListSpaces,
     GoodMemRetrieveMemories,
+    GoodMemUpdateSpace,
 )
 
 __all__ = [
@@ -16,8 +20,12 @@ __all__ = [
     "GoodMemCreateMemory",
     "GoodMemCreateSpace",
     "GoodMemDeleteMemory",
+    "GoodMemDeleteSpace",
     "GoodMemGetMemory",
+    "GoodMemGetSpace",
     "GoodMemListEmbedders",
+    "GoodMemListMemories",
     "GoodMemListSpaces",
     "GoodMemRetrieveMemories",
+    "GoodMemUpdateSpace",
 ]

@@ -189,6 +189,97 @@ class GoodMemClient:
             return body
         return body.get("spaces", [])
 
+    def get_space(self, *, space_id: str) -> dict[str, Any]:
+        """Fetch a space by ID.
+
+        Args:
+            space_id: The UUID of the space.
+
+        Returns:
+            The space dictionary.
+
+        Raises:
+            httpx.HTTPStatusError: If the API returns an error status.
+        """
+        with self._client() as client:
+            response = client.get(
+                self._url(f"/v1/spaces/{space_id}"),
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def update_space(
+        self,
+        *,
+        space_id: str,
+        name: str | None = None,
+        public_read: bool | None = None,
+        replace_labels: dict[str, str] | None = None,
+        merge_labels: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Update mutable fields on a space.
+
+        Only `name`, `publicRead`, and labels are mutable. Fields not provided
+        are left unchanged.
+
+        Args:
+            space_id: The UUID of the space to update.
+            name: New name for the space.
+            public_read: Whether the space should be public-read.
+            replace_labels: If provided, replaces the entire label set.
+            merge_labels: If provided, merges into the existing label set.
+
+        Returns:
+            The updated space dictionary.
+
+        Raises:
+            httpx.HTTPStatusError: If the API returns an error status.
+        """
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["name"] = name
+        if public_read is not None:
+            body["publicRead"] = public_read
+        if replace_labels is not None:
+            body["replaceLabels"] = replace_labels
+        if merge_labels is not None:
+            body["mergeLabels"] = merge_labels
+
+        with self._client() as client:
+            response = client.put(
+                self._url(f"/v1/spaces/{space_id}"),
+                headers=self._headers(),
+                json=body,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def delete_space(self, *, space_id: str) -> dict[str, Any]:
+        """Delete a space by ID.
+
+        Args:
+            space_id: The UUID of the space to delete.
+
+        Returns:
+            A dictionary confirming the deletion.
+
+        Raises:
+            httpx.HTTPStatusError: If the API returns an error status.
+        """
+        with self._client() as client:
+            response = client.delete(
+                self._url(f"/v1/spaces/{space_id}"),
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+
+        return {
+            "success": True,
+            "spaceId": space_id,
+            "message": "Space deleted successfully",
+        }
+
     # -- Memory operations --
 
     def create_memory(
@@ -263,6 +354,8 @@ class GoodMemClient:
             "message": "Memory created successfully",
         }
 
+    _CHAT_POSTPROCESSOR = "com.goodmem.retrieval.postprocess.ChatPostProcessorFactory"
+
     def retrieve_memories(
         self,
         *,
@@ -271,21 +364,38 @@ class GoodMemClient:
         max_results: int = 5,
         include_memory_definition: bool = True,
         wait_for_indexing: bool = True,
+        reranker_id: str | None = None,
+        llm_id: str | None = None,
+        relevance_threshold: float | None = None,
+        llm_temperature: float | None = None,
+        chronological_resort: bool | None = None,
     ) -> dict[str, Any]:
         """Retrieve memories via semantic similarity search.
 
         Supports polling for up to 60 seconds when `wait_for_indexing` is
         enabled and no results are found initially.
 
+        When any of `reranker_id`, `llm_id`, `relevance_threshold`,
+        `llm_temperature`, or `chronological_resort` is provided, a
+        `ChatPostProcessor` stage is appended that reranks, filters,
+        re-sorts, and/or generates an LLM summary (`abstractReply`).
+
         Args:
             query: The natural language search query.
             space_ids: Comma-separated space UUIDs to search across.
-            max_results: Maximum number of matching chunks to return.
+            max_results: Maximum number of matching chunks to return. Also
+                used as the post-processor `max_results` when one is configured.
             include_memory_definition: Whether to include full memory metadata.
             wait_for_indexing: Whether to retry for up to 60s if no results.
+            reranker_id: UUID of a reranker to improve result ordering.
+            llm_id: UUID of an LLM that generates a contextual `abstractReply`.
+            relevance_threshold: Minimum relevance score (0-1) for inclusion.
+            llm_temperature: Creativity setting for the LLM (0-2).
+            chronological_resort: Reorder final results by creation time.
 
         Returns:
             A dictionary containing matched results and memory definitions.
+            Includes `abstractReply` when an LLM summary was generated.
 
         Raises:
             ValueError: If no valid space IDs are provided.
@@ -305,6 +415,24 @@ class GoodMemClient:
             "fetchMemory": include_memory_definition,
         }
 
+        post_config: dict[str, Any] = {}
+        if reranker_id is not None:
+            post_config["reranker_id"] = reranker_id
+        if llm_id is not None:
+            post_config["llm_id"] = llm_id
+        if relevance_threshold is not None:
+            post_config["relevance_threshold"] = relevance_threshold
+        if llm_temperature is not None:
+            post_config["llm_temp"] = llm_temperature
+        if chronological_resort is not None:
+            post_config["chronological_resort"] = chronological_resort
+        if post_config:
+            post_config.setdefault("max_results", max_results)
+            request_body["postProcessor"] = {
+                "name": self._CHAT_POSTPROCESSOR,
+                "config": post_config,
+            }
+
         max_wait = 60.0
         poll_interval = 5.0
         start = time.monotonic()
@@ -322,6 +450,7 @@ class GoodMemClient:
             results: list[dict[str, Any]] = []
             memories: list[dict[str, Any]] = []
             result_set_id = ""
+            abstract_reply: dict[str, Any] | None = None
 
             response_text = response.text
             for line in response_text.strip().split("\n"):
@@ -340,6 +469,8 @@ class GoodMemClient:
                         result_set_id = item["resultSetBoundary"].get("resultSetId", "")
                     elif item.get("memoryDefinition"):
                         memories.append(item["memoryDefinition"])
+                    elif item.get("abstractReply"):
+                        abstract_reply = item["abstractReply"]
                     elif item.get("retrievedItem"):
                         ri = item["retrievedItem"]
                         chunk_data = ri.get("chunk", {})
@@ -364,6 +495,8 @@ class GoodMemClient:
                 "totalResults": len(results),
                 "query": query,
             }
+            if abstract_reply is not None:
+                last_result["abstractReply"] = abstract_reply
 
             if results or not wait_for_indexing:
                 return last_result
@@ -424,6 +557,66 @@ class GoodMemClient:
                 result["contentError"] = f"Failed to fetch content: {e}"
 
         return result
+
+    def list_memories(
+        self,
+        *,
+        space_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+        status_filter: str | None = None,
+        include_content: bool = False,
+        filter_expression: str | None = None,
+    ) -> dict[str, Any]:
+        """List memories in a space, with optional pagination and filtering.
+
+        Args:
+            space_id: The UUID of the space.
+            max_results: Maximum results per page (clamped server-side).
+            next_token: Opaque pagination token from a previous response.
+            status_filter: Filter by processing status: PENDING, PROCESSING,
+                COMPLETED, FAILED.
+            include_content: Whether to include the original content in the
+                response.
+            filter_expression: Metadata filter expression (see GoodMem
+                Filter Expressions reference).
+
+        Returns:
+            A dictionary with `memories` list and `nextToken`.
+
+        Raises:
+            httpx.HTTPStatusError: If the API returns an error status.
+        """
+        params: dict[str, Any] = {}
+        if max_results is not None:
+            params["maxResults"] = max_results
+        if next_token is not None:
+            params["nextToken"] = next_token
+        if status_filter is not None:
+            params["statusFilter"] = status_filter
+        if include_content:
+            params["includeContent"] = True
+        if filter_expression is not None:
+            params["filter"] = filter_expression
+
+        with self._client() as client:
+            response = client.get(
+                self._url(f"/v1/spaces/{space_id}/memories"),
+                headers=self._headers(),
+                params=params,
+            )
+            response.raise_for_status()
+            body = response.json()
+
+        memories = body.get("memories", []) if isinstance(body, dict) else []
+        next_token_resp = body.get("nextToken") if isinstance(body, dict) else None
+        return {
+            "success": True,
+            "spaceId": space_id,
+            "memories": memories,
+            "totalMemories": len(memories),
+            "nextToken": next_token_resp,
+        }
 
     def delete_memory(self, *, memory_id: str) -> dict[str, Any]:
         """Delete a memory by ID.

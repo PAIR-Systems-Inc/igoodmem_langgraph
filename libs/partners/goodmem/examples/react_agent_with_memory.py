@@ -29,8 +29,15 @@ from langgraph.prebuilt import create_react_agent  # type: ignore[import-not-fou
 from langgraph_goodmem import (
     GoodMemCreateMemory,
     GoodMemCreateSpace,
+    GoodMemDeleteMemory,
+    GoodMemDeleteSpace,
+    GoodMemGetMemory,
+    GoodMemGetSpace,
     GoodMemListEmbedders,
+    GoodMemListMemories,
+    GoodMemListSpaces,
     GoodMemRetrieveMemories,
+    GoodMemUpdateSpace,
 )
 
 # -- Configuration -----------------------------------------------------------
@@ -49,9 +56,16 @@ goodmem_kwargs: dict[str, Any] = {
 
 tools = [
     GoodMemListEmbedders(**goodmem_kwargs),
+    GoodMemListSpaces(**goodmem_kwargs),
+    GoodMemGetSpace(**goodmem_kwargs),
     GoodMemCreateSpace(**goodmem_kwargs),
+    GoodMemUpdateSpace(**goodmem_kwargs),
+    GoodMemDeleteSpace(**goodmem_kwargs),
     GoodMemCreateMemory(**goodmem_kwargs),
+    GoodMemListMemories(**goodmem_kwargs),
+    GoodMemGetMemory(**goodmem_kwargs),
     GoodMemRetrieveMemories(**goodmem_kwargs),
+    GoodMemDeleteMemory(**goodmem_kwargs),
 ]
 
 # -- Agent -------------------------------------------------------------------
